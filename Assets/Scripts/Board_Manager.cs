@@ -5,7 +5,18 @@ using UnityEngine;
 
 public class Board_Manager : MonoBehaviour
 {
+    public enum GameState
+    {
+        Rolling,
+        SelectingChecker,
+        SelectingColumn,
+        Finalizing
+    };
+
     public Dice_Manager_Script DiceManager;
+    GameState state;
+    Checker checkerselected;
+    Column columnSelected;
     GameObject[] columns;
     public Player PlayerA, PlayerB;
     // Start is called before the first frame update
@@ -17,7 +28,93 @@ public class Board_Manager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        if (state == GameState.Rolling)
+        {
+            if (Input.GetKeyDown("space"))
+            {
+                DiceManager.RollDice();
+                state = GameState.SelectingChecker;
+            }
+        }
+        else if (state == GameState.SelectingChecker)
+        {
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                RaycastHit hitInfo = new RaycastHit();
+                bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
+                if (hit)
+                {
+                    Debug.Log("Hit " + hitInfo.transform.gameObject.name);
+                    if (hitInfo.transform.gameObject.tag == "Checker")
+                    {
+                        checkerselected = hitInfo.transform.GetComponent<Checker>();
+
+                        // if the checker can move, highlight it
+                        if (checkerselected.canMove)
+                        {
+                            checkerselected.setHighlighted();
+
+                            state = GameState.SelectingColumn;
+                        }
+                    }
+                    else
+                    {
+                        if (checkerselected != null)
+                        {
+                            checkerselected.setTeamMaterial();
+                            checkerselected = null;
+                        }
+                    }
+                }
+            }
+        }
+        else if (state == GameState.SelectingColumn)
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                RaycastHit hitInfo = new RaycastHit();
+                bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
+                if (hit)
+                {
+                    Debug.Log("Hit " + hitInfo.transform.gameObject.name);
+                    if (hitInfo.transform.gameObject.tag == "Column")
+                    {
+                        columnSelected = hitInfo.transform.GetComponent<Column>();
+
+                        if (checkerselected != null)
+                        {
+                            // move the checker that is selected and adjust the column
+                            move(columns[getColumnOfChecker(checkerselected)].GetComponent<Column>(), columnSelected);
+                            state = GameState.Finalizing;
+                        }
+                        else
+                        {
+                            if (checkerselected != null)
+                            {
+                                checkerselected.setTeamMaterial();
+                                checkerselected = null;
+                            }
+                            state = GameState.SelectingChecker;
+                        }
+                    }
+                    else
+                    {
+                        if (checkerselected != null)
+                        {
+                            checkerselected.setTeamMaterial();
+                            checkerselected = null;
+                        }
+                        state = GameState.SelectingChecker;
+                    }
+
+                }
+            }
+        }
+        else if (state == GameState.Finalizing)
+        {
+            DiceManager.ResetDice(-1f);
+        }
     }
 
     void initializeColumns()
@@ -45,6 +142,10 @@ public class Board_Manager : MonoBehaviour
             from.adjustCheckers();
             to.adjustCheckers();
         }
+    }
+    int getColumnOfChecker(Checker checker)
+    {
+        return checker.transform.parent.GetComponent<Column>().id;
     }
 
     IEnumerator WaitaBit()

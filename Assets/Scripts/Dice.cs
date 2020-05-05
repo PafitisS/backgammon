@@ -17,9 +17,12 @@ public class Dice : MonoBehaviour
     //array of die sides
     public Check_Dice_Side[] diceSides;
 
-    //Change the position of the die according to which player's turn is
+    //Keep the dice intitial position and rotation
     public Vector3 startPosition;
     public Quaternion startRotation;
+
+    //Values 1 or -1 according to which player is playing to 
+    //change the position and the diraction of the force accordingly
     public int multiplier;
 
     //This event is called when the dice stops moving.
@@ -45,6 +48,8 @@ public class Dice : MonoBehaviour
             if (rb.IsSleeping())
             {
                 rb.isKinematic = true;
+                multiplier *= -1;
+
                 rolling = false;
                 SideCheck();
                 RollEvent.Invoke();
@@ -62,9 +67,8 @@ public class Dice : MonoBehaviour
             rb.isKinematic = false;
             rb.AddForce(transform.forward * Random.Range(60, 175) * speed * multiplier);
             rb.AddForce(transform.up * Random.Range(0, 18) * speed);
-            rb.AddTorque(Random.Range(0, 500), Random.Range(0, 500), Random.Range(0, 500));
-            Debug.Log("Roll Called");
-        }
+            rb.AddTorque(Random.Range(50, 500), Random.Range(50, 500), Random.Range(50, 500));
+            }
         }
 
         void SideCheck()
@@ -74,12 +78,13 @@ public class Dice : MonoBehaviour
             foreach(Check_Dice_Side side in diceSides)
             {
                 if(side.OnGround())
-                {
-
                 diceNumber = side.sideValue;
-                
-                }
             }
-        Debug.Log("Sides Checked");
         }
+
+    public void ResetPosition(float mul)
+    {
+        transform.SetPositionAndRotation(new Vector3(startPosition.x * mul, startPosition.y, startPosition.z * mul), startRotation);
+        startPosition = transform.position;
     }
+}

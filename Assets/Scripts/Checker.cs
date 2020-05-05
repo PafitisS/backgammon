@@ -16,13 +16,18 @@ public class Checker : MonoBehaviour
     {
         team = Int32.Parse(transform.name.Substring(7)) < 15 ? "playerA" : "playerB";
         canMove = false;
+        setTeamMaterial();
     }
 
-    public void setMaterial(int materialIndex)
+    public void setHighlighted()
     {
-        gameObject.GetComponent<Renderer>().material = materialIndex == 0 ? teamAMaterial : materialIndex == 1 ? teamBMaterial : highlightedMaterial;
+        gameObject.GetComponent<Renderer>().material = highlightedMaterial;
     }
 
+    public void setTeamMaterial()
+    {
+        gameObject.GetComponent<Renderer>().material = team == "playerA" ? teamAMaterial : teamBMaterial;
+    }
     public void CheckerOnBoard()
     {
 
