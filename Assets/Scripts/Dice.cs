@@ -23,17 +23,19 @@ public class Dice : MonoBehaviour
 
     //Values 1 or -1 according to which player is playing to 
     //change the position and the diraction of the force accordingly
-    public int multiplier;
+    public float multiplier;
 
     //This event is called when the dice stops moving.
     public UnityEvent RollEvent;
+
+    
 
     void Start()
     {
         rb=this.GetComponent<Rigidbody>();
         rb.isKinematic = true; // disable physics
 
-        //Change the position of the die according to which player's turn is
+        //Get initial position and initliaze multiplier
         this.startPosition=transform.position;
         this.startRotation=transform.rotation;
         multiplier = 1;
@@ -82,6 +84,7 @@ public class Dice : MonoBehaviour
             }
         }
 
+    //reset dice position
     public void ResetPosition(float mul)
     {
         transform.SetPositionAndRotation(new Vector3(startPosition.x * mul, startPosition.y, startPosition.z * mul), startRotation);

@@ -6,7 +6,7 @@ public class Dice_Manager_Script : MonoBehaviour
 {
 
     public List<Dice> diceList;
-    public static int[] DiceOutput= new int[2];
+    public int[] DiceOutput= new int[2];
     public UnityEvent EndRollEvent;
 
     public void RollDice()
@@ -21,10 +21,15 @@ public class Dice_Manager_Script : MonoBehaviour
 
     public void GetDiceNumbers()
     {
-        //store the output of the dice in the array
-        DiceOutput[0] = diceList[0].diceNumber;
-        DiceOutput[1] = diceList[1].diceNumber;
-        EndRollEvent.Invoke();
+        foreach (Dice die in diceList)
+            if (die.rolling)
+                return;
+
+         DiceOutput[0] = diceList[0].diceNumber;
+         DiceOutput[1] = diceList[1].diceNumber;
+         EndRollEvent.Invoke();
+            
+            
     }
 
     //reset the postion of the dice

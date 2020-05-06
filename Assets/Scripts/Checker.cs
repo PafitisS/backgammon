@@ -19,15 +19,19 @@ public class Checker : MonoBehaviour
         setTeamMaterial();
     }
 
+    //Set the highlighted material
     public void setHighlighted()
     {
         gameObject.GetComponent<Renderer>().material = highlightedMaterial;
     }
 
+    //Set team material
     public void setTeamMaterial()
     {
         gameObject.GetComponent<Renderer>().material = team == "playerA" ? teamAMaterial : teamBMaterial;
     }
+
+
     public void CheckerOnBoard()
     {
 

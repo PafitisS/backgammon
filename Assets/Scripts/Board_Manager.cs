@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.ExceptionServices;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Board_Manager : MonoBehaviour
 {
@@ -19,10 +20,16 @@ public class Board_Manager : MonoBehaviour
     Column columnSelected;
     GameObject[] columns;
     public Player PlayerA, PlayerB;
+    int availableMoves,maxAMoves, movesTaken;
+    public Button[] buttons = new Button[3];
+
     // Start is called before the first frame update
     void Start()
     {
         initializeColumns();
+        //buttons[0].enabled = false;
+        //buttons[1].enabled = false;
+        //buttons[2].enabled = false;
     }
 
     // Update is called once per frame
@@ -30,11 +37,7 @@ public class Board_Manager : MonoBehaviour
     {
         if (state == GameState.Rolling)
         {
-            if (Input.GetKeyDown("space"))
-            {
-                DiceManager.RollDice();
-                state = GameState.SelectingChecker;
-            }
+            buttons[0].enabled = true;  
         }
         else if (state == GameState.SelectingChecker)
         {
@@ -113,7 +116,7 @@ public class Board_Manager : MonoBehaviour
         }
         else if (state == GameState.Finalizing)
         {
-            DiceManager.ResetDice(-1f);
+            buttons[2].enabled = true;
         }
     }
 
@@ -130,7 +133,7 @@ public class Board_Manager : MonoBehaviour
                 }
     }
 
-
+    //Change the checker's parent(column)
     public void move(Column from, Column to)
     {
         int checkersInFrom = from.transform.childCount;
@@ -148,6 +151,7 @@ public class Board_Manager : MonoBehaviour
         return checker.transform.parent.GetComponent<Column>().id;
     }
 
+    //2 seconds timer
     IEnumerator WaitaBit()
     {
         yield return new WaitForSeconds(2);
@@ -158,40 +162,34 @@ public class Board_Manager : MonoBehaviour
     {
         PlayerA.MyTurn = !PlayerA.MyTurn;
         PlayerB.MyTurn = !PlayerB.MyTurn;
-        EndTurnResetDice(); 
+        DiceManager.ResetDice(-1f);
     }
 
-    //Reset the position of the dice based on player's turn
-    void EndTurnResetDice()
-    {
-        if (PlayerA.MyTurn)
-        {
-            Debug.Log("A");
-            foreach (Dice die in DiceManager.diceList)
-            {
-                die.transform.SetPositionAndRotation(new Vector3(die.startPosition.x * -1f,
-                   die.startPosition.y, die.startPosition.z * -1), die.startRotation);
-                die.multiplier = 1;
-                die.startPosition = transform.position;
-
-            }
-        }
-        else if(PlayerB.MyTurn)
-        {
-            Debug.Log("B");
-            foreach (Dice die in DiceManager.diceList)
-            {
-                die.transform.SetPositionAndRotation(new Vector3(die.startPosition.x * -1f,
-                   die.startPosition.y, die.startPosition.z * -1), die.startRotation);
-                die.multiplier = -1;
-                die.startPosition = transform.position;
-
-            }
-        }
-    }
-
+    //Undo the last move
     public void Undo ()
     {
 
+    }
+
+    public void EndRollingState()
+    {
+        buttons[0].enabled = false;
+        if (DiceManager.DiceOutput[0] == 0 || DiceManager.DiceOutput[1] == 0)
+        {
+            DiceManager.ResetDice(1f);
+            buttons[0].enabled = true;
+        }
+            
+        else if (DiceManager.DiceOutput[0] == DiceManager.DiceOutput[1])
+        {
+            maxAMoves = 4;
+            availableMoves = 4;
+        }
+        else
+        {
+            maxAMoves = 2;
+            availableMoves = 2;
+        }
+        state = GameState.SelectingChecker;
     }
 }
