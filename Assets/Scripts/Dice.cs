@@ -50,7 +50,7 @@ public class Dice : MonoBehaviour
             if (rb.IsSleeping())
             {
                 rb.isKinematic = true;
-                multiplier *= -1;
+                //multiplier *= -1;
 
                 rolling = false;
                 SideCheck();
@@ -88,6 +88,7 @@ public class Dice : MonoBehaviour
     public void ResetPosition(float mul)
     {
         transform.SetPositionAndRotation(new Vector3(startPosition.x * mul, startPosition.y, startPosition.z * mul), startRotation);
+        multiplier *= mul;
         startPosition = transform.position;
     }
 }

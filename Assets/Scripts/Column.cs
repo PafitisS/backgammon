@@ -61,7 +61,10 @@ public class Column : MonoBehaviour
             z = xStart + offset * count;
 
             checker.transform.localPosition = new Vector3(x, y, z);
+            checker.canMove = false;
             count++;
         }
+        if (count != 0)
+            checkers[count - 1].canMove = true;
     }
 }

@@ -37,7 +37,13 @@ public class Board_Manager : MonoBehaviour
     {
         if (state == GameState.Rolling)
         {
-            buttons[0].enabled = true;  
+            Debug.Log("in rolling select");
+            buttons[0].enabled = true;
+            state = GameState.SelectingChecker;
+            foreach (GameObject go in columns)
+            {
+                go.GetComponent<Collider>().enabled = false;
+            }
         }
         else if (state == GameState.SelectingChecker)
         {
@@ -48,11 +54,11 @@ public class Board_Manager : MonoBehaviour
                 bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
                 if (hit)
                 {
-                    Debug.Log("Hit " + hitInfo.transform.gameObject.name);
+                    Debug.Log("in checker select");
                     if (hitInfo.transform.gameObject.tag == "Checker")
                     {
                         checkerselected = hitInfo.transform.GetComponent<Checker>();
-
+                        Debug.Log(checkerselected.gameObject.name);
                         // if the checker can move, highlight it
                         if (checkerselected.canMove)
                         {
@@ -74,8 +80,14 @@ public class Board_Manager : MonoBehaviour
         }
         else if (state == GameState.SelectingColumn)
         {
+            foreach (GameObject go in columns)
+            {
+                go.GetComponent<Collider>().enabled = true;
+            }
             if (Input.GetMouseButtonDown(0))
             {
+                
+                Debug.Log("in columns select");
                 RaycastHit hitInfo = new RaycastHit();
                 bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
                 if (hit)
@@ -83,6 +95,9 @@ public class Board_Manager : MonoBehaviour
                     Debug.Log("Hit " + hitInfo.transform.gameObject.name);
                     if (hitInfo.transform.gameObject.tag == "Column")
                     {
+
+                        Debug.Log("ok");
+
                         columnSelected = hitInfo.transform.GetComponent<Column>();
 
                         if (checkerselected != null)
@@ -91,18 +106,11 @@ public class Board_Manager : MonoBehaviour
                             move(columns[getColumnOfChecker(checkerselected)].GetComponent<Column>(), columnSelected);
                             state = GameState.Finalizing;
                         }
-                        else
-                        {
-                            if (checkerselected != null)
-                            {
-                                checkerselected.setTeamMaterial();
-                                checkerselected = null;
-                            }
-                            state = GameState.SelectingChecker;
-                        }
                     }
+
                     else
                     {
+                        //
                         if (checkerselected != null)
                         {
                             checkerselected.setTeamMaterial();
@@ -110,13 +118,18 @@ public class Board_Manager : MonoBehaviour
                         }
                         state = GameState.SelectingChecker;
                     }
-
+                    foreach (GameObject go in columns)
+                    {
+                        go.GetComponent<Collider>().enabled = false;
+                    }
                 }
             }
         }
         else if (state == GameState.Finalizing)
         {
             buttons[2].enabled = true;
+
+            state = GameState.Rolling;
         }
     }
 
@@ -136,14 +149,24 @@ public class Board_Manager : MonoBehaviour
     //Change the checker's parent(column)
     public void move(Column from, Column to)
     {
+        Debug.Log(from.transform.name);
+        Debug.Log(to.transform.name);
         int checkersInFrom = from.transform.childCount;
         int checkersInTo = to.transform.childCount;
 
+
         if (checkersInFrom != 0)
         {
-            from.transform.SetParent(to.transform);
-            from.adjustCheckers();
-            to.adjustCheckers();
+            Checker[] children = from.transform.GetComponentsInChildren<Checker>();
+            foreach (Checker child in children)
+            {
+                if (child.canMove == true)
+                {
+                    from.adjustCheckers();
+                    to.adjustCheckers();
+                    break;
+                }
+            }
         }
     }
     int getColumnOfChecker(Checker checker)
