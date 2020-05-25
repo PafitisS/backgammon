@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Column : MonoBehaviour
 {
-    //column name
+    //column name set manually
     public int id;
     //side of the board where the column is placed up or down
     public string side;
@@ -13,18 +13,17 @@ public class Column : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        id = Int32.Parse(gameObject.name.Substring(7));
         offset = 0.17f;
 
         if(id>11)
         {
-            side = "up";
+            side = "down";
             xStart=0.42f;
             offset *= -1;
         }
         else
         {
-            side = "down";
+            side = "up";
             xStart = -0.42f;
         }
 
@@ -62,6 +61,7 @@ public class Column : MonoBehaviour
 
             checker.transform.localPosition = new Vector3(x, y, z);
             checker.canMove = false;
+            checker.setTeamMaterial();
             count++;
         }
         if (count != 0)

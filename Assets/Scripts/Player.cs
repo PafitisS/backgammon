@@ -4,15 +4,15 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    public bool MyTurn;
-    public bool IWin;
+    public bool turn;
+    public bool won;
     public int cheksersCount;
 
     // Start is called before the first frame update
     void Start()
     {
-        MyTurn = false;
-        IWin = false;
+        turn = false;
+        won = false;
         cheksersCount = 15;
     }
 
@@ -21,7 +21,7 @@ public class Player : MonoBehaviour
     {
         if(cheksersCount==0)
         {
-            IWin = true;
+            won = true;
         }
     }
 

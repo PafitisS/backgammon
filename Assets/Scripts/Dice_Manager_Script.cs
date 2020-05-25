@@ -28,8 +28,6 @@ public class Dice_Manager_Script : MonoBehaviour
          DiceOutput[0] = diceList[0].diceNumber;
          DiceOutput[1] = diceList[1].diceNumber;
          EndRollEvent.Invoke();
-            
-            
     }
 
     //reset the postion of the dice
