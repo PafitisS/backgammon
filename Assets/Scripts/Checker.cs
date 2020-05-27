@@ -30,10 +30,4 @@ public class Checker : MonoBehaviour
     {
         gameObject.GetComponent<Renderer>().material = team == "playerA" ? teamAMaterial : teamBMaterial;
     }
-
-
-    public void CheckerOnBoard()
-    {
-
-    }
 }

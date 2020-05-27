@@ -112,7 +112,13 @@ public class Board_Manager : MonoBehaviour
                         {
                             Column from = columns[getColumnOfChecker(checkerselected)].GetComponent<Column>();
                             Column to = hitInfo.transform.GetComponent<Column>();
-                            bool moved = move(from, to);
+                            Column onHit;
+                            if (PlayerB.turn)
+                                onHit = columns[25].GetComponent<Column>();
+                            else
+                                onHit = columns[24].GetComponent<Column>();
+
+                            bool moved = move(from, to, onHit);
 
                             if (moved)
                                 movesTaken++;
@@ -176,34 +182,100 @@ public class Board_Manager : MonoBehaviour
 
     void setAvailableToMove(bool availability)
     {
-        foreach (GameObject col in columns)
+        int HittedCheckers;
+        if (PlayerB.turn)
+            HittedCheckers = columns[24].transform.childCount;
+        else
+            HittedCheckers = columns[25].transform.childCount;
+
+        if (HittedCheckers==0)
         {
-            Checker[] checkers = col.transform.GetComponentsInChildren<Checker>();
-            foreach (Checker checker in checkers)
+            foreach (GameObject col in columns)
             {
-                if (checker.canMove)
-                    if ((PlayerB.turn && checker.team == "playerB") || (PlayerA.turn && checker.team == "playerA"))
-                        if (availability)
-                            checker.setHighlighted();
-                        else
-                            checker.setTeamMaterial();
+                Checker[] checkers = col.transform.GetComponentsInChildren<Checker>();
+                foreach (Checker checker in checkers)
+                {
+                    if (checker.canMove)
+                        if ((PlayerB.turn && checker.team == "playerB") || (PlayerA.turn && checker.team == "playerA"))
+                            if (availability)
+                            {
+                                foreach (int die in diceToPlay)
+                                {
+                                    Column from = col.GetComponent<Column>();
+                                    int target = PlayerB.turn ? from.id + die : from.id - die;
+                                    if (PlayerB.turn && target < 24 || PlayerA.turn && target >= 0)
+                                    {
+                                        Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
+
+                                        if (children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
+                                        {
+                                            checker.setHighlighted();
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                                checker.setTeamMaterial();
+                }
+        
             }
+        }
+        else
+        {
+
+            Checker[] hitted;
+            if(PlayerB.turn)
+                hitted = PlayerB.transform.GetChild(0).GetComponentsInChildren<Checker>();
+            else
+                hitted = PlayerA.transform.GetChild(0).GetComponentsInChildren<Checker>();
+
+            foreach(Checker checker in hitted)
+                if ((PlayerB.turn && checker.team == "playerB") || (PlayerA.turn && checker.team == "playerA"))
+                    if (availability)
+                    {
+                        foreach (int die in diceToPlay)
+                        {
+                            //Column from = PlayerB.turn ? PlayerB.transform.GetChild(0).GetComponent<Column>() : PlayerA.transform.GetChild(0).GetComponent<Column>();
+                            int target = PlayerB.turn ? die-1 : 24-die;
+                            if (PlayerB.turn && target < 24 || PlayerA.turn && target >= 0)
+                            {
+                                Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
+
+                                if (children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
+                                {
+                                    checker.setHighlighted();
+                                }
+                            }
+                        }
+                    }
+                else
+                    checker.setTeamMaterial();
         }
     }
 
+
     //Change the checker's parent(column)
-    public bool move(Column from, Column to)
+    public bool move(Column from, Column to, Column onHit)
     {
         int checkersInFrom = from.transform.childCount;
         int checkersInTo = to.transform.childCount;
+        bool playerAisHit = PlayerA.turn && PlayerA.transform.GetChild(0).childCount > 0;
+        bool playerBisHit = PlayerB.turn && PlayerB.transform.GetChild(0).childCount > 0;
+        List<Column> playedMove = new List<Column>();
+        Debug.Log(playerBisHit);
+        Debug.Log(playerAisHit);
 
+        if (!playerBisHit)
         if (PlayerB.turn && from.id >= to.id)
             return false;
+
+        if(!playerAisHit)
         if (PlayerA.turn && from.id <= to.id)
             return false;
         if (to.transform.GetComponent<MeshRenderer>().enabled == false)
             return false;
 
+        
         if (checkersInTo > 0)
         {
             Checker fromChecker = from.transform.GetChild(0).GetComponent<Checker>();
@@ -214,22 +286,34 @@ public class Board_Manager : MonoBehaviour
                 {
                     return false;
                 }
-                // attacking scenario
                 else
                 {
-                    // move the child in the out column
+                    toChecker.transform.SetParent(onHit.transform);
+                    onHit.adjustCheckers();
+                    playedMove.Add(to);
+                    playedMove.Add(onHit);
+                    moveStack.Push(playedMove);
                 }
             }
         }
 
-        List<Column> playedMove = new List<Column>();
+        
         playedMove.Add(from);
         playedMove.Add(to);
 
         moveStack.Push(playedMove);
 
         // Remove the die that was played
-        int diff = Math.Abs(from.id - to.id);
+        int diff;
+        if (from.id < 24)
+            diff = Math.Abs(from.id - to.id);
+        else
+        {
+            if (PlayerB.turn)
+                diff = to.id + 1;
+            else
+                diff = from.id - (to.id + 1);
+        }
         diceToPlay.Remove(diff);
 
 
@@ -251,6 +335,7 @@ public class Board_Manager : MonoBehaviour
         return true;
     }
 
+    
     int getColumnOfChecker(Checker checker)
     {
         return checker.transform.parent.GetComponent<Column>().id;
@@ -364,10 +449,13 @@ public class Board_Manager : MonoBehaviour
             {
                 if (checker.canMove)
                 {
+                    int target;
+                    if (col.id>23)
+                        target = PlayerB.turn ? die - 1 : 24 - die;
+                    else
+                        target = PlayerB.turn ? col.id + die : col.id - die;
 
-                    int target = PlayerB.turn ? col.id + die : col.id - die;
-
-                    if (PlayerB.turn && target < 25 || PlayerA.turn && target >= 0)
+                    if (PlayerB.turn && target < 24 || PlayerA.turn && target >= 0)
                     {
                         Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
 

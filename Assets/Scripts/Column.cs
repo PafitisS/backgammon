@@ -52,12 +52,12 @@ public class Column : MonoBehaviour
             //another layer on the column
             if(count%6==0)
             {
-                height += 0.75f;
+                height += 0.9f;
             }
 
             x = 0f;
             y = height;
-            z = xStart + offset * count;
+            z = xStart + offset * (count%6);
 
             checker.transform.localPosition = new Vector3(x, y, z);
             checker.canMove = false;
@@ -66,5 +66,11 @@ public class Column : MonoBehaviour
         }
         if (count != 0)
             checkers[count - 1].canMove = true;
+    }
+
+
+    public void ajustPickedCheckers()
+    {
+
     }
 }
