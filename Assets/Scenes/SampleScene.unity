@@ -2598,10 +2598,9 @@ MonoBehaviour:
   DiceManager: {fileID: 1815019684}
   PlayerA: {fileID: 1651163318}
   PlayerB: {fileID: 267324045}
-  buttons:
-  - {fileID: 1645857903}
-  - {fileID: 955899064}
-  - {fileID: 104316051}
+  undoButton: {fileID: 104316051}
+  rollButton: {fileID: 1645857903}
+  endButton: {fileID: 955899064}
 --- !u!1 &553403138 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6904090539964102372, guid: e50795dce6397b14ba9a9dbe9519462b,
