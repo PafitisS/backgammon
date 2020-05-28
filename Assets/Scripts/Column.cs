@@ -47,9 +47,11 @@ public class Column : MonoBehaviour
         {
             float x, y, z;
 
-            //if there are already 6 checkers in the current column
-            //place the next checkers above the existing checkers forming
-            //another layer on the column
+            /*
+             * if there are already 6 checkers in the current column
+             *place the next checkers above the existing checkers forming
+             *another layer on the column
+             */
             if(count%6==0)
             {
                 height += 0.9f;
@@ -69,8 +71,33 @@ public class Column : MonoBehaviour
     }
 
 
+    //Out of board checkers adjustment
     public void ajustPickedCheckers()
     {
+        int count = 0;
+        Checker[] checkers = transform.GetComponentsInChildren<Checker>();
 
+        float height = -1f;
+        foreach (Checker checker in checkers)
+        {
+            float x, y, z;
+
+            /*
+             * 5 checkers per row
+             */
+            if (count % 5 == 0)
+            {
+                height += 0.9f;
+            }
+
+            x = 0f;
+            y = height;
+            z = xStart + offset * (count % 5);
+
+            checker.transform.localPosition = new Vector3(x, y, z);
+            checker.canMove = false;
+            checker.setTeamMaterial();
+            count++;
+        }
     }
 }
