@@ -122,6 +122,11 @@ public class Board_Manager : MonoBehaviour
                             bool moved = move(from, to, onHit);
 
                             if (moved) movesTaken++;
+                            //check if with the current move taken the player won
+                            if (PlayerB.turn && PlayerB.won)
+                                Debug.Log("PlayerB won!");
+                            else if (PlayerA.turn && PlayerA.won)
+                                Debug.Log("PlayerA won!");
 
                             if (movesTaken == Moves)
                             {
@@ -232,7 +237,7 @@ public class Board_Manager : MonoBehaviour
                                             }
                                         }
                                         else
-                                            if (target < 0)
+                                            if (target < 0 || from.id==27)
                                             {
                                                 target = 0;
                                                 targetChanged = true;
@@ -250,18 +255,16 @@ public class Board_Manager : MonoBehaviour
                                              */
                                             if(readyToPick && !checker.canBePicked && targetChanged)
                                             {
-                                                bool canStillMove = false;
                                                 foreach (int num in diceToPlay)
                                                     if (num < pick)
-                                                        if(pick<27)//case for PlayerA
-                                                        canStillMove = true;
+                                                        if(from.id!=27)//special case for column 27
+                                                        checker.canStillMove = true;
                                                 /*
                                                  * if checker cannot move or be picked or its out of the board
                                                  * do not highlight it
                                                  */
-                                                if(!canStillMove)
-                                                    checker.setTeamMaterial();
-                                                    
+                                                if(!checker.canStillMove)
+                                                    checker.setTeamMaterial(); 
                                             }
                                         }
                                     } 

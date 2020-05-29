@@ -8,6 +8,7 @@ public class Checker : MonoBehaviour
     public string team;
     public bool canMove;
     public bool canBePicked;
+    public bool canStillMove;
     public Material teamAMaterial;
     public Material teamBMaterial;
     public Material highlightedMaterial;
@@ -18,6 +19,7 @@ public class Checker : MonoBehaviour
         team = Int32.Parse(transform.name.Substring(7)) < 15 ? "playerA" : "playerB";
         canMove = false;
         canBePicked = false;
+        canStillMove = false;
         setTeamMaterial();
     }
 
