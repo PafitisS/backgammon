@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Runtime.ExceptionServices;
+using System.Security.Cryptography;
 using UnityEditor.Build;
 using UnityEngine;
 using UnityEngine.Events;
@@ -28,7 +29,7 @@ public class Board_Manager : MonoBehaviour
     Checker checkerselected;
     GameObject[] columns;
     bool collidersSet;
-    int Moves, movesTaken,availableMovesCount;
+    int Moves, movesTaken, availableMovesCount;
     List<int> diceToPlay = new List<int>();
     Stack<List<Column>> moveStack = new Stack<List<Column>>();
 
@@ -113,12 +114,7 @@ public class Board_Manager : MonoBehaviour
                         {
                             Column from = columns[getColumnOfChecker(checkerselected)].GetComponent<Column>();
                             Column to = hitInfo.transform.GetComponent<Column>();
-                            Column onHit;
-                            if (PlayerB.turn)
-                                onHit = columns[25].GetComponent<Column>();
-                            else
-                                onHit = columns[24].GetComponent<Column>();
-
+                            Column onHit = columns[PlayerB.turn ? 25 : 24].GetComponent<Column>();
                             bool moved = move(from, to, onHit);
 
                             if (moved) movesTaken++;
@@ -187,19 +183,14 @@ public class Board_Manager : MonoBehaviour
 
     void setAvailableToMove(bool availability)
     {
-        int HittedCheckers;
-        int pick=0;
-        if (PlayerB.turn)
-            HittedCheckers = columns[24].transform.childCount;
-        else
-            HittedCheckers = columns[25].transform.childCount;
+        int pick = 0, HittedCheckers = columns[PlayerB.turn ? 24 : 25].transform.childCount;
 
         //check if all the 15 checkers of the player are in the final 6 columns
         bool readyToPick = pickingCheckers();
         /*
          * if the player which is his turn to play does not have any hitted checkers
          */
-        if (HittedCheckers==0)
+        if (HittedCheckers == 0)
         {
             foreach (GameObject col in columns)
             {
@@ -214,13 +205,13 @@ public class Board_Manager : MonoBehaviour
                                 {
                                     Column from = col.GetComponent<Column>();
                                     int target = PlayerB.turn ? from.id + die : from.id - die;
-                                    if(readyToPick)
+                                    if (readyToPick)
                                     {
-                                        pick = PlayerB.turn ? 24-from.id : from.id +1;
-                                        if(!checker.canBePicked)
-                                        checker.canBePicked = availableToPick(from.id, pick, die);
+                                        pick = PlayerB.turn ? 24 - from.id : from.id + 1;
+                                        if (!checker.canBePicked)
+                                            checker.canBePicked = availableToPick(from.id, pick, die);
                                     }
-                                        
+
                                     if ((PlayerB.turn && target < 24 || readyToPick) || (PlayerA.turn && target >= 0 || readyToPick))
                                     {
                                         bool targetChanged = false;
@@ -237,38 +228,38 @@ public class Board_Manager : MonoBehaviour
                                             }
                                         }
                                         else
-                                            if (target < 0 || from.id==27)
-                                            {
-                                                target = 0;
-                                                targetChanged = true;
-                                            }
+                                            if (target < 0 || from.id == 27)
+                                        {
+                                            target = 0;
+                                            targetChanged = true;
+                                        }
 
                                         Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
 
                                         if (children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
                                         {
                                             checker.setHighlighted();
-                                            availableMovesCount++; 
+                                            availableMovesCount++;
                                             /*
                                              * in the picking phase highlight the checkers that can be picked
                                              * or can still make a move
                                              */
-                                            if(readyToPick && !checker.canBePicked && targetChanged)
+                                            if (readyToPick && !checker.canBePicked && targetChanged)
                                             {
                                                 foreach (int num in diceToPlay)
                                                     if (num < pick)
-                                                        if(from.id!=27)//special case for column 27
-                                                        checker.canStillMove = true;
+                                                        if (from.id != 27) //special case for column 27
+                                                            checker.canStillMove = true;
                                                 /*
                                                  * if checker cannot move or be picked or its out of the board
                                                  * do not highlight it
                                                  */
-                                                if(!checker.canStillMove)
-                                                    checker.setTeamMaterial(); 
+                                                if (!checker.canStillMove)
+                                                    checker.setTeamMaterial();
                                             }
                                         }
-                                    } 
-                                    
+                                    }
+
                                 }
                             }
                             else
@@ -282,33 +273,26 @@ public class Board_Manager : MonoBehaviour
         else
         {
 
-            Checker[] hitted;
-            if(PlayerB.turn)
-                hitted = PlayerB.transform.GetChild(0).GetComponentsInChildren<Checker>();
-            else
-                hitted = PlayerA.transform.GetChild(0).GetComponentsInChildren<Checker>();
+            Checker[] hitted = (PlayerB.turn ? PlayerB : PlayerA).transform.GetChild(0).GetComponentsInChildren<Checker>();
 
-            foreach(Checker checker in hitted)
+            foreach (Checker checker in hitted)
                 if ((PlayerB.turn && checker.team == "playerB") || (PlayerA.turn && checker.team == "playerA"))
                     if (availability)
                     {
                         foreach (int die in diceToPlay)
                         {
                             //Column from = PlayerB.turn ? PlayerB.transform.GetChild(0).GetComponent<Column>() : PlayerA.transform.GetChild(0).GetComponent<Column>();
-                            int target = PlayerB.turn ? die-1 : 24-die;
+                            int target = PlayerB.turn ? die - 1 : 24 - die;
                             if (PlayerB.turn && target < 24 || PlayerA.turn && target >= 0)
                             {
                                 Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
-
                                 if (children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
-                                {
                                     checker.setHighlighted();
-                                }
                             }
                         }
                     }
-                else
-                    checker.setTeamMaterial();
+                    else
+                        checker.setTeamMaterial();
         }
     }
 
@@ -327,10 +311,10 @@ public class Board_Manager : MonoBehaviour
             if (PlayerB.turn && from.id >= to.id)
                 return false;
 
-        if(!playerAisHit)
+        if (!playerAisHit)
             if (PlayerA.turn && from.id <= to.id)
-                if(to.id!=27)
-                return false;
+                if (to.id != 27)
+                    return false;
 
         if (to.transform.GetComponent<MeshRenderer>().enabled == false)
             return false;
@@ -362,20 +346,15 @@ public class Board_Manager : MonoBehaviour
 
         // Remove the die that was played
         int diff;
-        
-        //if the checker was picked(out of board)
-        if(to.id>25)
-        {
-            diff= PlayerB.turn ? diff = to.id - from.id - 2 : diff = from.id + 1;
-        }
-        //normal move
-        else if (from.id < 24)
+
+
+        if (to.id > 25) // checker was picked(out of board)
+            diff = PlayerB.turn ? diff = to.id - from.id - 2 : diff = from.id + 1;
+        else if (from.id < 24) // normal move
             diff = Math.Abs(from.id - to.id);
-        //hiited checker back in board
-        else
-        {
-            diff= PlayerB. turn ? diff = to.id + 1 : diff = from.id - (to.id + 1);
-        }
+        else // hitted checker back in board
+            diff = PlayerB.turn ? diff = to.id + 1 : diff = from.id - (to.id + 1);
+
         diceToPlay.Remove(diff);
 
         if (checkersInFrom != 0)
@@ -395,13 +374,10 @@ public class Board_Manager : MonoBehaviour
                     if (to.id > 25)
                     {
                         to.ajustPickedCheckers();
-                        if (to.transform.childCount == 15)
-                            if (PlayerB.turn) 
-                                PlayerB.won = true;
-                            else
-                                PlayerA.won = true;
+                        PlayerB.won = PlayerB.turn && to.transform.childCount == 15;
+                        PlayerA.won = PlayerA.turn && to.transform.childCount == 15;
                     }
-                        
+
                     else
                         to.adjustCheckers();
                     break;
@@ -423,6 +399,7 @@ public class Board_Manager : MonoBehaviour
         PlayerB.turn = !PlayerB.turn;
         DiceManager.ResetDice(-1f);
         availableMovesCount = 0;
+        diceToPlay.Clear();
     }
 
     //Undo the last move
@@ -430,26 +407,35 @@ public class Board_Manager : MonoBehaviour
     {
         if (moveStack.Count == 0)
             return;
+
+        // Undo all the moves made by the player
         while (moveStack.Count != 0)
         {
+            int diff = 0;
             List<Column> lastMove = moveStack.Pop();
-            Column to = lastMove[0];
-            Column from = lastMove[1];
+            Column from = lastMove[1], to = lastMove[0];
 
             if (from.id < 24)
             {
-                int diff = Math.Abs(from.id - to.id);
+                diff = Math.Abs(from.id - to.id);
                 diceToPlay.Add(diff);
-
                 movesTaken--;
             }
             else if (from.id > 25)
             {
-                int diff = PlayerB.turn ? from.id - (to.id + 2) : to.id + 1;
-                Debug.Log(diff);
+                diff = PlayerB.turn ? from.id - (to.id + 2) : to.id + 1;
                 diceToPlay.Add(diff);
-
                 movesTaken--;
+            }
+            else if (PlayerB.turn && to.id == 24)
+            {
+                diff = to.id + 1;
+                diceToPlay.Add(diff);
+            }
+            else if(PlayerA.turn && to.id==25)
+            {
+                diff = 24 - to.id;
+                diceToPlay.Add(diff);
             }
 
 
@@ -519,9 +505,8 @@ public class Board_Manager : MonoBehaviour
         if (!collidersSet)
         {
             foreach (GameObject go in columns)
-            {
                 go.GetComponent<Collider>().enabled = true;
-            }
+
             collidersSet = true;
         }
     }
@@ -542,25 +527,17 @@ public class Board_Manager : MonoBehaviour
             {
                 if (checker.canMove)
                 {
-                    int target;
-                    if (col.id>23)
-                        target = PlayerB.turn ? die - 1 : 24 - die;
-                    else
-                        target = PlayerB.turn ? col.id + die : col.id - die;
+                    int target = col.id > 23 ? (PlayerB.turn ? die - 1 : 24 - die) : (PlayerB.turn ? col.id + die : col.id - die);
 
                     if (PlayerB.turn && target < 24 || PlayerA.turn && target >= 0)
                     {
                         Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
-
                         if (children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
-                        {
                             columns[target].GetComponent<MeshRenderer>().enabled = true;
-                        }   
                     }
                     else
                     {
-                        // send to winning column
-                        if (checker.canBePicked)
+                        if (checker.canBePicked) // send to winning column
                             columns[outCol].GetComponent<MeshRenderer>().enabled = true;
                     }
                 }
@@ -576,9 +553,8 @@ public class Board_Manager : MonoBehaviour
         if (collidersSet)
         {
             foreach (GameObject go in columns)
-            {
                 go.GetComponent<Collider>().enabled = false;
-            }
+
             collidersSet = false;
         }
 
@@ -590,26 +566,20 @@ public class Board_Manager : MonoBehaviour
     void DisableMeshRenderers()
     {
         foreach (GameObject go in columns)
-        {
             go.GetComponent<MeshRenderer>().enabled = false;
-        }
     }
 
     void initializeColumns()
     {
         columns = GameObject.FindGameObjectsWithTag("Column");
         for (int i = 0; i < columns.Length - 1; i++)
-        {
             for (int j = i + 1; j < columns.Length; j++)
-            {
                 if (columns[j].GetComponent<Column>().id < columns[i].GetComponent<Column>().id)
                 {
                     GameObject temp = columns[j];
                     columns[j] = columns[i];
                     columns[i] = temp;
                 }
-            }
-        }
     }
 
     /*
@@ -617,50 +587,34 @@ public class Board_Manager : MonoBehaviour
      * in order to start taking checkers out of the board or if he has
      * already started taking them out
      */
-    bool pickingCheckers ()
+    bool pickingCheckers()
     {
-        bool picking= false;
         int checkersSum = 0;
-        if (PlayerB.turn)
-        {
-            for (int i = 0; i < 6; i++)
-            {
-                checkersSum += columns[18 + i].transform.childCount;
-            }
-            if (checkersSum == 15 || columns[26].transform.childCount > 0)
-                    picking = true;
-        }
 
-        else
-        {
-            for (int i = 0; i < 6; i++)
-            {
-                checkersSum += columns[i].transform.childCount;
-            }
-            if (checkersSum == 15 || columns[27].transform.childCount > 0)
-                picking = true;
-        } 
-        return picking;
+        for (int i = 0; i < 6; i++)
+            checkersSum += columns[(PlayerB.turn ? 18 : 0) + i].transform.childCount;
+
+        return checkersSum == 15 || columns[PlayerB.turn ? 26 : 27].transform.childCount > 0;
     }
 
     /*
      * in the picking state check if there are checkers in the columns before the selected checker
      * in order to determine if by rolling e.g. a 6 i can pick the checker in the 4th column
      */
-    bool availableToPick(int position,int pick, int die)
+    bool availableToPick(int position, int pick, int die)
     {
         int checkersBefore = 0;
         if (pick != 0)
         {
             if (pick == die)
                 return true;
-            else if(pick<die)
+            else if (pick < die)
             {
                 if (PlayerB.turn)
                     for (int i = position - 1; i >= 18; i--)
                         checkersBefore += columns[i].transform.childCount;
                 else
-                    for (int i = position+1; i<=5;i++)
+                    for (int i = position + 1; i <= 5; i++)
                         checkersBefore += columns[i].transform.childCount;
 
                 return checkersBefore != 0 ? false : true;
