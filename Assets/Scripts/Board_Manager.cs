@@ -80,7 +80,7 @@ public class Board_Manager : MonoBehaviour
                             // if the checker can move, highlight it
                             if (checkerselected.canMove)
                             {
-                                checkerselected.setHighlighted();
+                                //checkerselected.setHighlighted();
                                 state = GameState.SelectingColumn;
                             }
                         }
@@ -194,7 +194,6 @@ public class Board_Manager : MonoBehaviour
 
         //check if all the 15 checkers of the player are in the final 6 columns
         bool readyToPick = pickingCheckers();
-        Debug.Log(readyToPick);
         /*
          * if the player which is his turn to play does not have any hitted checkers
          */
@@ -216,19 +215,28 @@ public class Board_Manager : MonoBehaviour
                                     if(readyToPick)
                                     {
                                         pick = PlayerB.turn ? 24-from.id : from.id +1;
+                                        if(!checker.canBePicked)
                                         checker.canBePicked = availableToPick(from.id, pick, die);
                                     }
                                         
                                     if ((PlayerB.turn && target < 24 || readyToPick) || (PlayerA.turn && target >= 0 || readyToPick))
                                     {
+                                        //avoid out of bounds exception in the picking phase
+                                        if (PlayerB.turn)
+                                        {
+                                            if (target > 23)
+                                                target = 23;
+                                        }
+                                        else if (PlayerA.turn)
+                                            if (target < 0)
+                                                target = 0;
+
                                             Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
 
                                         if (checker.canBePicked || children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
                                         {
-                                           
                                             checker.setHighlighted();
-                                            availableMovesCount++;
-                                            
+                                            availableMovesCount++; 
                                         }
                                     } 
                                     
@@ -489,11 +497,7 @@ public class Board_Manager : MonoBehaviour
             Column col = checkerselected.transform.parent.GetComponent<Column>();
             Checker[] checkers = col.transform.GetComponentsInChildren<Checker>();
 
-            int outCol;
-            if (PlayerB.turn)
-                outCol = 26;
-            else
-                outCol = 27;
+            int outCol = PlayerB.turn ? 26 : 27;
 
             foreach (Checker checker in checkers)
             {
@@ -512,18 +516,14 @@ public class Board_Manager : MonoBehaviour
                         if (children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
                         {
                             columns[target].GetComponent<MeshRenderer>().enabled = true;
-                            if(checker.canBePicked)
-                            columns[outCol].GetComponent<MeshRenderer>().enabled = true;
-                                
-                        }
-                            
+                        }   
                     }
                     else
                     {
                         // send to winning column
-                        
+                        if (checker.canBePicked)
+                            columns[outCol].GetComponent<MeshRenderer>().enabled = true;
                     }
-
                 }
             }
         }
@@ -610,10 +610,6 @@ public class Board_Manager : MonoBehaviour
      */
     bool availableToPick(int position,int pick, int die)
     {
-        Debug.Log(position);
-        Debug.Log(pick);
-        Debug.Log(die);
-
         int checkersBefore = 0;
         if (pick != 0)
         {
@@ -627,11 +623,12 @@ public class Board_Manager : MonoBehaviour
                 else
                     for (int i = position+1; i<=5;i++)
                         checkersBefore += columns[i].transform.childCount;
-
-                if (checkersBefore != 0)
-                    return false;
-                else
-                    return true;
+                Debug.Log("checkers before"+checkersBefore);
+                // if (checkersBefore != 0)
+                //   return false;
+                //else
+                //   return true;
+                return checkersBefore != 0 ? false : true;
             }
         }
         return false;
