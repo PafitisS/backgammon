@@ -28,7 +28,7 @@ public class Board_Manager : MonoBehaviour
     Checker checkerselected;
     GameObject[] columns;
     bool collidersSet;
-    int Moves, movesTaken,availableMovesCount = 0;
+    int Moves, movesTaken,availableMovesCount;
     List<int> diceToPlay = new List<int>();
     Stack<List<Column>> moveStack = new Stack<List<Column>>();
 
@@ -42,7 +42,7 @@ public class Board_Manager : MonoBehaviour
         collidersSet = false;
         PlayerB.turn = true;
         state = GameState.Rolling;
-
+        availableMovesCount = 0;
         rollButton.interactable = false;
         undoButton.interactable = false;
         endButton.interactable = false;
@@ -101,7 +101,7 @@ public class Board_Manager : MonoBehaviour
             EnableColumnColliders();
             EnableMeshRenderers();
 
-            if (collidersSet&&availableMovesCount!=0)
+            if (collidersSet && availableMovesCount != 0)
             {
                 if (Input.GetMouseButtonDown(0))
                 {
@@ -121,11 +121,7 @@ public class Board_Manager : MonoBehaviour
 
                             bool moved = move(from, to, onHit);
 
-                            if (moved)
-                            {
-                                movesTaken++;
-                            }
-                                
+                            if (moved) movesTaken++;
 
                             if (movesTaken == Moves)
                             {
@@ -137,7 +133,6 @@ public class Board_Manager : MonoBehaviour
                                 checkerselected.setTeamMaterial();
                                 setAvailableToMove(true);
                                 state = GameState.SelectingChecker;
-
                             }
                         }
                     }
@@ -145,6 +140,8 @@ public class Board_Manager : MonoBehaviour
                     DisableMeshRenderers();
                 }
             }
+            else
+                state = GameState.Finalizing;
         }
         else if (state == GameState.Finalizing)
         {
@@ -221,22 +218,51 @@ public class Board_Manager : MonoBehaviour
                                         
                                     if ((PlayerB.turn && target < 24 || readyToPick) || (PlayerA.turn && target >= 0 || readyToPick))
                                     {
-                                        //avoid out of bounds exception in the picking phase
+                                        bool targetChanged = false;
+                                        /*
+                                         * avoid out of bounds exception in the picking phase
+                                         * check if the target has been changed
+                                         */
                                         if (PlayerB.turn)
                                         {
                                             if (target > 23)
+                                            {
                                                 target = 23;
+                                                targetChanged = true;
+                                            }
                                         }
-                                        else if (PlayerA.turn)
+                                        else
                                             if (target < 0)
+                                            {
                                                 target = 0;
+                                                targetChanged = true;
+                                            }
 
-                                            Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
+                                        Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
 
-                                        if (checker.canBePicked || children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
+                                        if (children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
                                         {
                                             checker.setHighlighted();
                                             availableMovesCount++; 
+                                            /*
+                                             * in the picking phase highlight the checkers that can be picked
+                                             * or can still make a move
+                                             */
+                                            if(readyToPick && !checker.canBePicked && targetChanged)
+                                            {
+                                                bool canStillMove = false;
+                                                foreach (int num in diceToPlay)
+                                                    if (num < pick)
+                                                        if(pick<27)//case for PlayerA
+                                                        canStillMove = true;
+                                                /*
+                                                 * if checker cannot move or be picked or its out of the board
+                                                 * do not highlight it
+                                                 */
+                                                if(!canStillMove)
+                                                    checker.setTeamMaterial();
+                                                    
+                                            }
                                         }
                                     } 
                                     
@@ -245,7 +271,6 @@ public class Board_Manager : MonoBehaviour
                             else
                                 checker.setTeamMaterial();
                 }
-                
             }
         }
         /*
@@ -301,12 +326,12 @@ public class Board_Manager : MonoBehaviour
 
         if(!playerAisHit)
             if (PlayerA.turn && from.id <= to.id)
+                if(to.id!=27)
                 return false;
 
         if (to.transform.GetComponent<MeshRenderer>().enabled == false)
             return false;
 
-        
         if (checkersInTo > 0)
         {
             Checker fromChecker = from.transform.GetChild(0).GetComponent<Checker>();
@@ -314,9 +339,7 @@ public class Board_Manager : MonoBehaviour
             if (fromChecker.team != toChecker.team)
             {
                 if (checkersInTo > 1)
-                {
                     return false;
-                }
                 //hit a checker scemario
                 else
                 {
@@ -329,7 +352,6 @@ public class Board_Manager : MonoBehaviour
             }
         }
 
-        
         playedMove.Add(from);
         playedMove.Add(to);
 
@@ -341,10 +363,7 @@ public class Board_Manager : MonoBehaviour
         //if the checker was picked(out of board)
         if(to.id>25)
         {
-            if (PlayerB.turn)
-                diff = to.id - from.id - 2;
-            else
-                diff = from.id + 1;
+            diff= PlayerB.turn ? diff = to.id - from.id - 2 : diff = from.id + 1;
         }
         //normal move
         else if (from.id < 24)
@@ -352,13 +371,9 @@ public class Board_Manager : MonoBehaviour
         //hiited checker back in board
         else
         {
-            if (PlayerB.turn)
-                diff = to.id + 1;
-            else
-                diff = from.id - (to.id + 1);
+            diff= PlayerB. turn ? diff = to.id + 1 : diff = from.id - (to.id + 1);
         }
         diceToPlay.Remove(diff);
-
 
         if (checkersInFrom != 0)
         {
@@ -370,8 +385,20 @@ public class Board_Manager : MonoBehaviour
                 {
                     child.transform.SetParent(to.transform);
                     from.adjustCheckers();
+                    /*
+                     * when a move is executed and a checker is placed out of the board
+                     * check if all the checkers are out of board which mean that a player has won
+                     */
                     if (to.id > 25)
+                    {
                         to.ajustPickedCheckers();
+                        if (to.transform.childCount == 15)
+                            if (PlayerB.turn) 
+                                PlayerB.won = true;
+                            else
+                                PlayerA.won = true;
+                    }
+                        
                     else
                         to.adjustCheckers();
                     break;
@@ -381,7 +408,6 @@ public class Board_Manager : MonoBehaviour
         return true;
     }
 
-    
     int getColumnOfChecker(Checker checker)
     {
         return checker.transform.parent.GetComponent<Column>().id;
@@ -393,6 +419,7 @@ public class Board_Manager : MonoBehaviour
         PlayerA.turn = !PlayerA.turn;
         PlayerB.turn = !PlayerB.turn;
         DiceManager.ResetDice(-1f);
+        availableMovesCount = 0;
     }
 
     //Undo the last move
@@ -400,31 +427,40 @@ public class Board_Manager : MonoBehaviour
     {
         if (moveStack.Count == 0)
             return;
-
-        List<Column> lastMove = moveStack.Pop();
-        Column to = lastMove[0];
-        Column from = lastMove[1];
-
-            if (from.id<24)
-            {
-            int diff = Math.Abs(from.id - to.id);
-            diceToPlay.Add(diff);
-
-            movesTaken--; 
-
-            }
-                
-
-        Checker[] children = from.transform.GetComponentsInChildren<Checker>();
-
-        foreach (Checker child in children)
+        while (moveStack.Count != 0)
         {
-            if (child.canMove == true)
+            List<Column> lastMove = moveStack.Pop();
+            Column to = lastMove[0];
+            Column from = lastMove[1];
+
+            if (from.id < 24)
             {
-                child.transform.SetParent(to.transform);
-                from.adjustCheckers();
-                to.adjustCheckers();
-                break;
+                int diff = Math.Abs(from.id - to.id);
+                diceToPlay.Add(diff);
+
+                movesTaken--;
+            }
+            else if (from.id > 25)
+            {
+                int diff = PlayerB.turn ? from.id - (to.id + 2) : to.id + 1;
+                Debug.Log(diff);
+                diceToPlay.Add(diff);
+
+                movesTaken--;
+            }
+
+
+            Checker[] children = from.transform.GetComponentsInChildren<Checker>();
+
+            foreach (Checker child in children)
+            {
+                if (child.canMove == true)
+                {
+                    child.transform.SetParent(to.transform);
+                    from.adjustCheckers();
+                    to.adjustCheckers();
+                    break;
+                }
             }
         }
         setAvailableToMove(true);
@@ -623,11 +659,7 @@ public class Board_Manager : MonoBehaviour
                 else
                     for (int i = position+1; i<=5;i++)
                         checkersBefore += columns[i].transform.childCount;
-                Debug.Log("checkers before"+checkersBefore);
-                // if (checkersBefore != 0)
-                //   return false;
-                //else
-                //   return true;
+
                 return checkersBefore != 0 ? false : true;
             }
         }

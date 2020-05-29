@@ -83,7 +83,7 @@ public class Column : MonoBehaviour
             float x, y, z;
 
             /*
-             * 5 checkers per row
+             * 5 checkers per column layer
              */
             if (count % 5 == 0)
             {
@@ -96,8 +96,11 @@ public class Column : MonoBehaviour
 
             checker.transform.localPosition = new Vector3(x, y, z);
             checker.canMove = false;
+            checker.canBePicked = false;
             checker.setTeamMaterial();
-            count++;
+            count++;  
         }
+        if (count != 0)
+                checkers[count - 1].canMove = true;
     }
 }
