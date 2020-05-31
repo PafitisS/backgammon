@@ -97,7 +97,6 @@ public class Column : MonoBehaviour
             checker.transform.localPosition = new Vector3(x, y, z);
             checker.canMove = false;
             checker.canBePicked = false;
-            checker.canStillMove = false;
             checker.setTeamMaterial();
             count++;  
         }
