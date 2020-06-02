@@ -39,15 +39,8 @@ public class AI : MonoBehaviour
             checkers = col.transform.GetComponentsInChildren<Checker>();
             foreach(Checker checker in checkers)
             {
-                if(checker.availableMove)
-                {
-                    Column from = col.GetComponent<Column>();
-                    Column to;
-                    if(checker.canBePicked)
-                    {
 
-                    }
-                }
+                
             }
         }
     }
