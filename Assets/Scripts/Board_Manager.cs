@@ -24,7 +24,6 @@ public class Board_Manager : MonoBehaviour
     public Dice_Manager_Script DiceManager;
     public Player PlayerA, PlayerB;
     public Button undoButton, rollButton, endButton;
-
     public GameState state;
     public Checker checkerselected;
     public GameObject[] columns;
@@ -41,11 +40,19 @@ public class Board_Manager : MonoBehaviour
         initializeColumns();
         initializeListeners();
         collidersSet = false;
-        PlayerB.turn = true;
+        int rand = UnityEngine.Random.Range(0, 100);
+       
         state = GameState.Rolling;
         rollButton.interactable = false;
         undoButton.interactable = false;
-        endButton.interactable = false;
+        endButton.interactable = false; 
+        if (rand < 50)
+        {
+            PlayerA.turn = true;
+            DiceManager.ResetDice(-1f);
+        }
+        else
+            PlayerB.turn = true;
     }
 
     // Update is called once per frame
