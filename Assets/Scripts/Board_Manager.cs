@@ -25,7 +25,7 @@ public class Board_Manager : MonoBehaviour
     public Player PlayerA, PlayerB;
     public Button undoButton, rollButton, endButton;
 
-    GameState state;
+    public GameState state;
     Checker checkerselected;
     GameObject[] columns;
     bool collidersSet;
