@@ -26,8 +26,8 @@ public class Board_Manager : MonoBehaviour
     public Button undoButton, rollButton, endButton;
 
     public GameState state;
-    Checker checkerselected;
-    GameObject[] columns;
+    public Checker checkerselected;
+    public GameObject[] columns;
     bool collidersSet;
     int Moves, movesTaken, availableMovesCount;
     List<int> diceToPlay = new List<int>();
@@ -88,7 +88,6 @@ public class Board_Manager : MonoBehaviour
                             }
                         }
                     }
-                    /*
                     else
                     {
                         if (checkerselected != null)
@@ -96,7 +95,6 @@ public class Board_Manager : MonoBehaviour
                             checkerselected.setTeamMaterial();
                         }
                     }
-                    */
                 }
             }
         }
@@ -242,6 +240,7 @@ public class Board_Manager : MonoBehaviour
                                             if (from.id < 26 || checker.canBePicked)
                                             {
                                                 checker.setHighlighted();
+                                                checker.availableMove = true;
                                                 ++availableMovesCount;
                                             }
                                     }

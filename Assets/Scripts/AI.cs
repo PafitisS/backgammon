@@ -21,7 +21,7 @@ public class AI : MonoBehaviour
         }
         else if (manager.state == Board_Manager.GameState.SelectingChecker)
         {
-
+            calculateMoves();
         }
         else if (manager.state == Board_Manager.GameState.SelectingColumn)
         {
@@ -29,5 +29,26 @@ public class AI : MonoBehaviour
         }
         else if (manager.state == Board_Manager.GameState.Finalizing)
             manager.EndTurn();
+    }
+
+    void calculateMoves()
+    {
+        foreach (GameObject col in manager.columns)
+        {
+            Checker[] checkers;
+            checkers = col.transform.GetComponentsInChildren<Checker>();
+            foreach(Checker checker in checkers)
+            {
+                if(checker.availableMove)
+                {
+                    Column from = col.GetComponent<Column>();
+                    Column to;
+                    if(checker.canBePicked)
+                    {
+
+                    }
+                }
+            }
+        }
     }
 }
