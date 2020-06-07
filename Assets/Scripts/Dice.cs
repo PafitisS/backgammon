@@ -67,7 +67,7 @@ public class Dice : MonoBehaviour
             {
             rolling = true;
             rb.isKinematic = false;
-            rb.AddForce(transform.forward * Random.Range(60, 175) * speed * multiplier);
+            rb.AddForce(transform.forward * Random.Range(60, 165) * speed * multiplier);
             rb.AddForce(transform.up * Random.Range(0, 18) * speed);
             rb.AddTorque(Random.Range(50, 500), Random.Range(50, 500), Random.Range(50, 500));
             }

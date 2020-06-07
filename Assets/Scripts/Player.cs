@@ -15,14 +15,4 @@ public class Player : MonoBehaviour
         won = false;
         cheksersCount = 15;
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if(cheksersCount==0)
-        {
-            won = true;
-        }
-    }
-
 }

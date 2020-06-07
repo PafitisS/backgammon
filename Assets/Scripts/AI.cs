@@ -4,44 +4,24 @@ using UnityEngine;
 
 public class AI : MonoBehaviour
 {
-
-    Board_Manager manager;
-    // Start is called before the first frame update
-    void Start()
+    public static Checker getSelectedChecker(ref GameObject[] columns)
     {
-        
+        List<Checker> checkers=new List<Checker>();
+        foreach (GameObject col in columns)
+            foreach(Checker checker in col.transform.GetComponentsInChildren<Checker>())
+                if(checker.isHighlighted)
+                    checkers.Add(checker);
+
+        return checkers.Count > 0 ? checkers[UnityEngine.Random.Range(0, checkers.Count)] : null; ;
     }
 
-    // Update is called once per frame
-    void Update()
+    public static Column getTargetColumn(ref GameObject[] columns)
     {
-        if (manager.state == Board_Manager.GameState.Rolling)
-        {
-            manager.DiceManager.RollDice();
-        }
-        else if (manager.state == Board_Manager.GameState.SelectingChecker)
-        {
-            calculateMoves();
-        }
-        else if (manager.state == Board_Manager.GameState.SelectingColumn)
-        {
+        List<Column> cols = new List<Column>();
+        foreach (GameObject col in columns)
+            if (col.transform.GetComponent<MeshRenderer>().enabled)
+                cols.Add(col.GetComponent<Column>());
 
-        }
-        else if (manager.state == Board_Manager.GameState.Finalizing)
-            manager.EndTurn();
-    }
-
-    void calculateMoves()
-    {
-        foreach (GameObject col in manager.columns)
-        {
-            Checker[] checkers;
-            checkers = col.transform.GetComponentsInChildren<Checker>();
-            foreach(Checker checker in checkers)
-            {
-
-                
-            }
-        }
+        return cols.Count > 0 ? cols[UnityEngine.Random.Range(0, cols.Count)] : null;
     }
 }

@@ -7,8 +7,10 @@ using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using UnityEditor.Build;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using TMPro;
 //using UnityEngine.UIElements;
 
 public class Board_Manager : MonoBehaviour
@@ -21,16 +23,19 @@ public class Board_Manager : MonoBehaviour
         Finalizing
     };
 
+    const string playerMsg = "Player's turn", opponentMsg = "Opponent's turn", winMsg = "You win!!!", loseMsg = "You lose!!!";
+    public TMP_Text gameStatusText;
     public Dice_Manager_Script DiceManager;
     public Player PlayerA, PlayerB;
     public Button undoButton, rollButton, endButton;
     public GameState state;
     public Checker checkerselected;
     public GameObject[] columns;
-    bool collidersSet;
-    int Moves, movesTaken, availableMovesCount, set;
+    bool collidersSet, firstTimePlay = true;
+    public int Moves, movesTaken, availableMovesCount, set;
     List<int> diceToPlay = new List<int>();
     Stack<List<Column>> moveStack = new Stack<List<Column>>();
+    bool AIEnabled = false;
 
 
     // Start is called before the first frame update
@@ -40,19 +45,10 @@ public class Board_Manager : MonoBehaviour
         initializeColumns();
         initializeListeners();
         collidersSet = false;
-        int rand = UnityEngine.Random.Range(0, 100);
-       
         state = GameState.Rolling;
         rollButton.interactable = false;
         undoButton.interactable = false;
         endButton.interactable = false; 
-        if (rand < 50)
-        {
-            PlayerA.turn = true;
-            DiceManager.ResetDice(-1f);
-        }
-        else
-            PlayerB.turn = true;
     }
 
     // Update is called once per frame
@@ -60,103 +56,44 @@ public class Board_Manager : MonoBehaviour
     {
         if (state == GameState.Rolling)
         {
+            if (firstTimePlay)
+                decideWhoGoesFirst();
+
             if (!rollButton.interactable)
                 rollButton.interactable = true;
-
+            else if (AIEnabled)
+                    rollButton.onClick.Invoke();
         }
         else if (state == GameState.SelectingChecker)
         {
-
             if (!undoButton.interactable && movesTaken != 0)
                 undoButton.interactable = true;
-            
-            
 
-            //Select the checker that will move
-            if (Input.GetMouseButtonDown(0))
-            {
-                SetAvailableToMove();
-                //if there are no available moves enable end turn button
-                if (availableMovesCount == 0)
-                    state = GameState.Finalizing;
-
-                RaycastHit hitInfo = new RaycastHit();
-                bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
-                if (hit)
-                {
-                    if (hitInfo.transform.gameObject.tag == "Checker")
-                    {
-                        checkerselected = hitInfo.transform.GetComponent<Checker>();
-
-                        if (checkerselected != null)
-                        {
-                            // if the checker can move, highlight it
-                            if (checkerselected.team == "playerA" && PlayerA.turn || checkerselected.team == "playerB" && PlayerB.turn)
-                                state = GameState.SelectingColumn;
-                        }
-                    }
-                /*
-                    else
-                    {
-                        if (checkerselected != null)
-                        {
-                            checkerselected.setTeamMaterial();
-                        }
-                    }
-                    */
-                }
-            }
+            if (AIEnabled)
+                StartCoroutine(selectCheckerAfterSeconds(1f));
+            else
+                selectChecker();
         }
         else if (state == GameState.SelectingColumn)
         {
             // enable the colliders
-            EnableColumnColliders();
-            EnableMeshRenderers();
+            MaterialUtilities.EnableColumnColliders(ref collidersSet, ref columns);
+            MaterialUtilities.EnableMeshRenderers(PlayerA, PlayerB, checkerselected, diceToPlay, ref columns);
 
             if (collidersSet)
             {
-                if (Input.GetMouseButtonDown(0))
-                {
-                    RaycastHit hitInfo = new RaycastHit();
-                    bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
-                    if (hit)
-                    {
-                        if (hitInfo.transform.gameObject.tag == "Column")
-                        {
-                            Column from = columns[getColumnOfChecker(checkerselected)].GetComponent<Column>();
-                            Column to = hitInfo.transform.GetComponent<Column>();
-                            Column onHit = columns[PlayerB.turn ? 25 : 24].GetComponent<Column>();
-                            bool moved = move(from, to, onHit);
-
-                            if (moved) movesTaken++;
-                            //check if with the current move taken the player won
-                            if (PlayerB.turn && PlayerB.won)
-                                Debug.Log("PlayerB won!");
-                            else if (PlayerA.turn && PlayerA.won)
-                                Debug.Log("PlayerA won!");
-
-                            if (movesTaken == Moves)
-                            {
-                                setUnavailableToMove();
-                                state = GameState.Finalizing;
-                            }
-                            else
-                            {
-                                SetAvailableToMove();
-                                state = GameState.SelectingChecker;
-                            }
-                        }
-                    }
-                    DisableColumnColliders();
-                    DisableMeshRenderers();
-                }
+                if (AIEnabled)
+                    StartCoroutine(selectTargetAfterSeconds(1f));
+                else
+                    selectTarget();
             }
             else
                 state = GameState.Finalizing;
         }
         else if (state == GameState.Finalizing)
         {
-            endButton.interactable = true;
+            if (!endButton.interactable) 
+                endButton.interactable = true;
         }
     }
 
@@ -174,6 +111,7 @@ public class Board_Manager : MonoBehaviour
 
         endButton.onClick.AddListener(() => {
             endButton.interactable = false;
+            undoButton.interactable = false;
             rollButton.interactable = true;
             state = GameState.Rolling;
             while (moveStack.Count > 0)
@@ -274,22 +212,21 @@ public class Board_Manager : MonoBehaviour
     //Change the checker's parent(column)
     public bool move(Column from, Column to, Column onHit)
     {
-        int checkersInFrom = from.transform.childCount;
-        int checkersInTo = to.transform.childCount;
+        if (from == null || to == null || onHit == null)
+            return false;
+
+        int checkersInFrom = from.transform.childCount, checkersInTo = to.transform.childCount;
         bool playerAisHit = PlayerA.turn && PlayerA.transform.GetChild(0).childCount > 0;
         bool playerBisHit = PlayerB.turn && PlayerB.transform.GetChild(0).childCount > 0;
-        List<Column> playedMove = new List<Column>();
-        List<Column> playedMove1 = new List<Column>();
+        List<Column> playedMove = new List<Column>(), playedMove1 = new List<Column>();
 
         //check if a player has hitted checkers
-        if (!playerBisHit)
-            if (PlayerB.turn && from.id >= to.id)
-                return false;
+        if (!playerBisHit && PlayerB.turn && from.id >= to.id)
+            return false;
 
-        if (!playerAisHit)
-            if (PlayerA.turn && from.id <= to.id)
-                if (to.id != 27)
-                    return false;
+        if (!playerAisHit && PlayerA.turn && from.id <= to.id && to.id != 27)
+            return false;
+        
         if (checkersInTo > 0)
         {
             Checker fromChecker = from.transform.GetChild(0).GetComponent<Checker>();
@@ -369,6 +306,8 @@ public class Board_Manager : MonoBehaviour
     {
         PlayerA.turn = !PlayerA.turn;
         PlayerB.turn = !PlayerB.turn;
+        AIEnabled = !AIEnabled;
+        gameStatusText.text = PlayerA.turn ? opponentMsg : playerMsg;
         DiceManager.ResetDice(-1f);
         availableMovesCount = 0;
         diceToPlay.Clear();
@@ -469,78 +408,6 @@ public class Board_Manager : MonoBehaviour
         SetAvailableToMove();
     }
 
-    /*
-     * Enable the column colliders when not in a rolling state
-     */
-    void EnableColumnColliders()
-    {
-        if (!collidersSet)
-        {
-            foreach (GameObject go in columns)
-                go.GetComponent<Collider>().enabled = true;
-
-            collidersSet = true;
-        }
-    }
-
-    /*
-     * Enable the column renderers to display which columns are playable
-     */
-    void EnableMeshRenderers()
-    {
-        foreach (int die in diceToPlay)
-        {
-            Column col = checkerselected.transform.parent.GetComponent<Column>();
-            Checker[] checkers = col.transform.GetComponentsInChildren<Checker>();
-
-            int outCol = PlayerB.turn ? 26 : 27;
-
-            foreach (Checker checker in checkers)
-            {
-                if (checker.canMove)
-                {
-                    int target = col.id > 23 ? (PlayerB.turn ? die - 1 : 24 - die) : (PlayerB.turn ? col.id + die : col.id - die);
-
-                    if (PlayerB.turn && target < 24 || PlayerA.turn && target >= 0)
-                    {
-                        Checker[] children = columns[target].GetComponent<Column>().transform.GetComponentsInChildren<Checker>();
-                        if (children.Length == 0 || children.Length == 1 || (children.Length > 1 && children[0].team == checker.team))
-                            columns[target].GetComponent<MeshRenderer>().enabled = true;
-                    }
-                    else
-                    {
-                        if (checker.canBePicked) // send to winning column
-                            columns[outCol].GetComponent<MeshRenderer>().enabled = true;
-                    }
-                }
-            }
-        }
-    }
-
-    /*
-     * Disable the column colliders when rolling
-     */
-    void DisableColumnColliders()
-    {
-        if (collidersSet)
-        {
-            foreach (GameObject go in columns)
-                go.GetComponent<Collider>().enabled = false;
-
-            collidersSet = false;
-        }
-
-    }
-
-    /*
-     * Disable the column renderers
-     */
-    void DisableMeshRenderers()
-    {
-        foreach (GameObject go in columns)
-            go.GetComponent<MeshRenderer>().enabled = false;
-    }
-
     void initializeColumns()
     {
         columns = GameObject.FindGameObjectsWithTag("Column");
@@ -593,16 +460,175 @@ public class Board_Manager : MonoBehaviour
         if (pick == die)
             return true;
         else if (pick < die)
-            {
-                if (PlayerB.turn)
-                    for (int i = position - 1; i >= 18; i--)
-                        checkersBefore += columns[i].transform.childCount;
-                else
-                    for (int i = position + 1; i <= 5; i++)
-                        checkersBefore += columns[i].transform.childCount;
+        {
+            if (PlayerB.turn)
+                for (int i = position - 1; i >= 18; i--)
+                    checkersBefore += columns[i].transform.childCount > 0 && columns[i].transform.GetChild(0).GetComponent<Checker>().team == "playerB" ? columns[i].transform.childCount : 0;
+                        
+            else
+                for (int i = position + 1; i <= 5; i++)
+                    checkersBefore += columns[i].transform.childCount > 0 && columns[i].transform.GetChild(0).GetComponent<Checker>().team == "playerA" ? columns[i].transform.childCount : 0;
 
-                return checkersBefore != 0 ? false : true;
-            }
+            return checkersBefore != 0 ? false : true;
+        }
         return false;
+    }
+
+    void decideWhoGoesFirst()
+    {
+        firstTimePlay = false;
+        int rand = UnityEngine.Random.Range(0, 100);
+        if (rand < 50)
+        {
+            PlayerA.turn = true;
+            AIEnabled = true;
+            gameStatusText.text = opponentMsg;
+            DiceManager.ResetDice(-1f);
+            if (AIEnabled)
+                rollButton.onClick.Invoke();
+        }
+        else
+        {
+            gameStatusText.text = playerMsg;
+            PlayerB.turn = true;
+        }
+    }
+
+    void selectChecker()
+    {
+        //Select the checker that will move
+        if (Input.GetMouseButtonDown(0))
+        {
+            SetAvailableToMove();
+            //if there are no available moves enable end turn button
+            if (availableMovesCount == 0)
+                state = GameState.Finalizing;
+
+            RaycastHit hitInfo = new RaycastHit();
+            bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
+            if (hit)
+            {
+                if (hitInfo.transform.gameObject.tag == "Checker")
+                {
+                    checkerselected = hitInfo.transform.GetComponent<Checker>();
+
+                    if (checkerselected != null && hitInfo.transform.parent.transform.GetComponent<Column>().id < 26)
+                    {
+                        // if the checker can move, highlight it
+                        if (checkerselected.team == "playerA" && PlayerA.turn || checkerselected.team == "playerB" && PlayerB.turn)
+                            state = GameState.SelectingColumn;
+                    }
+                }
+            }
+        }
+    }
+
+    IEnumerator selectCheckerAfterSeconds(float x)
+    {
+        yield return new WaitForSeconds(x);
+
+        SetAvailableToMove();
+        if (availableMovesCount == 0)
+            state = GameState.Finalizing;
+        else 
+        {
+            if (checkerselected == null)
+            {
+                checkerselected = AI.getSelectedChecker(ref columns);
+                state = GameState.SelectingColumn;
+            }
+        }
+    }
+
+
+    void selectTarget()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            RaycastHit hitInfo = new RaycastHit();
+            bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
+            if (hit)
+            {
+                if (hitInfo.transform.gameObject.tag == "Column")
+                {
+                    Column from = columns[getColumnOfChecker(checkerselected)].GetComponent<Column>();
+                    Column to = hitInfo.transform.GetComponent<Column>();
+                    Column onHit = columns[PlayerB.turn ? 25 : 24].GetComponent<Column>();
+                    bool moved = move(from, to, onHit);
+
+                    if (moved)
+                    {
+                        movesTaken++;
+                        checkerselected = null;
+                    }
+                    //check if with the current move taken the player won
+                    if (PlayerB.turn && PlayerB.won)
+                    {
+                        gameStatusText.text = winMsg;
+                        Invoke("GoToScene", 5);
+                    }
+                    else if (PlayerA.turn && PlayerA.won)
+                    {
+                        gameStatusText.text = loseMsg;
+                        Invoke("GoToScene", 5);
+                    }
+
+                    if (movesTaken == Moves)
+                    {
+                        setUnavailableToMove();
+                        state = GameState.Finalizing;
+                    }
+                    else
+                    {
+                        setUnavailableToMove();
+                        SetAvailableToMove();
+                        state = GameState.SelectingChecker;
+                    }
+                }
+            }
+
+            MaterialUtilities.DisableColumnColliders(ref collidersSet, ref columns);
+            MaterialUtilities.DisableMeshRenderers(ref columns);
+        }
+    }
+
+    IEnumerator selectTargetAfterSeconds(float x)
+    {
+        yield return new WaitForSeconds(x);
+        if (checkerselected != null)
+        {
+            Column from = columns[getColumnOfChecker(checkerselected)].GetComponent<Column>();
+            Column to = AI.getTargetColumn(ref columns);
+            Column onHit = columns[PlayerB.turn ? 25 : 24].GetComponent<Column>();
+            bool moved = move(from, to, onHit);
+
+            if (moved)
+            {
+                checkerselected = null;
+                movesTaken++;
+            }
+            if (PlayerA.won)
+            {
+                gameStatusText.text = loseMsg;
+                Invoke("GoToScene", 5);
+            }
+            if (movesTaken == Moves)
+            {
+                setUnavailableToMove();
+                state = GameState.Finalizing;
+            }
+            else
+            {
+                setUnavailableToMove();
+                SetAvailableToMove();
+                state = GameState.SelectingChecker;
+            }
+            MaterialUtilities.DisableColumnColliders(ref collidersSet, ref columns);
+            MaterialUtilities.DisableMeshRenderers(ref columns);
+        }
+    }
+    void GoToScene()
+    {
+        SceneManager.LoadScene("Backgammon");
     }
 }
