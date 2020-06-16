@@ -325,7 +325,6 @@ public class Board_Manager : MonoBehaviour
             int diff = 0;
             List<Column> lastMove = moveStack.Pop();
             Column from = lastMove[1], to = lastMove[0];
-            Debug.Log("Column from "+from+" Column to "+ to);
 
             if (from.id < 24)
             {
